@@ -1,11 +1,8 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-
 import '../models/announcement_model.dart';
 import '../services/announcement_service.dart';
 import '../services/notification_service.dart';
-
 
 class AnnouncementProvider extends ChangeNotifier {
   final AnnouncementService _service = AnnouncementService();
@@ -14,12 +11,19 @@ class AnnouncementProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   StreamSubscription<List<AnnouncementModel>>? _subscription;
+  String? _currentBranchId;
 
   List<AnnouncementModel> get announcements => _announcements;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
   AnnouncementProvider() {
+    _subscribeToFeed();
+  }
+
+  void filterByBranch(String? branchId) {
+    _currentBranchId = branchId;
+    _subscription?.cancel();
     _subscribeToFeed();
   }
 
@@ -33,7 +37,18 @@ class AnnouncementProvider extends ChangeNotifier {
             (_announcements.isEmpty ||
                 updated.first.id != _announcements.first.id);
 
-        _announcements = updated;
+        // DDBMS: filter by branch locally after fetching
+        if (_currentBranchId != null) {
+          _announcements = updated
+              .where((a) =>
+          a.branchId == _currentBranchId ||
+              a.isGlobal ||
+              a.isEmergency)
+              .toList();
+        } else {
+          _announcements = updated;
+        }
+
         _isLoading = false;
         _errorMessage = null;
         notifyListeners();
@@ -56,6 +71,9 @@ class AnnouncementProvider extends ChangeNotifier {
     required String content,
     String? imageUrl,
     required String createdBy,
+    String? branchId,
+    bool isGlobal = false,
+    String priority = 'normal',
   }) async {
     try {
       await _service.createAnnouncement(
@@ -63,6 +81,9 @@ class AnnouncementProvider extends ChangeNotifier {
         content: content,
         imageUrl: imageUrl,
         createdBy: createdBy,
+        branchId: branchId,
+        isGlobal: isGlobal,
+        priority: priority,
       );
     } catch (e) {
       _errorMessage = e.toString();

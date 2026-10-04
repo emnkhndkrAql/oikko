@@ -5,7 +5,6 @@ import '../models/event_model.dart';
 class EventServiceException implements Exception {
   final String message;
   EventServiceException(this.message);
-
   @override
   String toString() => message;
 }
@@ -13,82 +12,55 @@ class EventServiceException implements Exception {
 class EventService {
   final _client = SupabaseService.client;
 
-  /// Creates a new event. Used by the admin dashboard.
-  Future<void> createEvent({
-    required String title,
-    required String description,
-    required DateTime eventDate,
-    required String location,
-  }) async {
+  Future<List<EventModel>> fetchEvents({String? branchId}) async {
     try {
-      await _client.from(AppConstants.tableEvents).insert({
-        'title': title,
-        'description': description,
-        'event_date': eventDate.toIso8601String(),
-        'location': location,
-      });
-    } catch (e) {
-      throw EventServiceException('Unable to create event: $e');
-    }
-  }
+      var query = _client.from(AppConstants.tableEvents).select();
 
-  /// Fetches all events along with their user responses in a single query.
-  Future<List<EventModel>> fetchEvents() async {
-    try {
-      // 1. Fetch events and join their responses in a single network request
-      final List<Map<String, dynamic>> eventRows = await _client
-          .from(AppConstants.tableEvents)
-          .select('*, ${AppConstants.tableEventResponses}(*)')
-          .order('event_date', ascending: true);
+      if (branchId != null) {
+        // DDBMS: local branch events + global events (horizontal fragment union)
+        query = query.or('branch_id.eq.$branchId,is_global.eq.true');
+      }
+
+      final List<Map<String, dynamic>> eventRows =
+      await query.order('event_date', ascending: true);
 
       final String? currentUserId = SupabaseService.currentUserId;
+      final List<EventModel> events = [];
 
-      // 2. Map the results synchronously in memory
-      return eventRows.map((eventRow) {
-        // Extract the nested responses array safely
-        final List<dynamic> responseRows = eventRow[AppConstants.tableEventResponses] as List<dynamic>? ?? [];
+      for (final eventRow in eventRows) {
+        final String eventId = eventRow['id'] as String;
+        final List<Map<String, dynamic>> responseRows = await _client
+            .from(AppConstants.tableEventResponses)
+            .select()
+            .eq('event_id', eventId);
 
-        int going = 0;
-        int notGoing = 0;
-        int interested = 0;
+        int going = 0, notGoing = 0, interested = 0;
         String? userStatus;
 
-        for (final response in responseRows) {
-          final status = response['status'] as String;
-          final userId = response['user_id'] as String;
-
-          switch (status) {
-            case AppConstants.statusGoing:
-              going++;
-              break;
-            case AppConstants.statusNotGoing:
-              notGoing++;
-              break;
-            case AppConstants.statusInterested:
-              interested++;
-              break;
-          }
-
-          if (currentUserId != null && userId == currentUserId) {
+        for (final r in responseRows) {
+          final status = r['status'] as String;
+          if (status == AppConstants.statusGoing) going++;
+          if (status == AppConstants.statusNotGoing) notGoing++;
+          if (status == AppConstants.statusInterested) interested++;
+          if (currentUserId != null && r['user_id'] == currentUserId) {
             userStatus = status;
           }
         }
 
-        return EventModel.fromJson(
+        events.add(EventModel.fromJson(
           eventRow,
           userStatus: userStatus,
           goingCount: going,
           notGoingCount: notGoing,
           interestedCount: interested,
-        );
-      }).toList();
-
+        ));
+      }
+      return events;
     } catch (e) {
       throw EventServiceException('Unable to load events: $e');
     }
   }
 
-  /// Updates or inserts a user response for a specific event.
   Future<void> setEventResponse({
     required String eventId,
     required String userId,
@@ -96,15 +68,33 @@ class EventService {
   }) async {
     try {
       await _client.from(AppConstants.tableEventResponses).upsert(
-        {
-          'event_id': eventId,
-          'user_id': userId,
-          'status': status,
-        },
+        {'event_id': eventId, 'user_id': userId, 'status': status},
         onConflict: 'event_id,user_id',
       );
     } catch (e) {
-      throw EventServiceException('Unable to update your response: $e');
+      throw EventServiceException('Unable to update response: $e');
+    }
+  }
+
+  Future<void> createEvent({
+    required String title,
+    required String description,
+    required DateTime eventDate,
+    required String location,
+    String? branchId,
+    bool isGlobal = false,
+  }) async {
+    try {
+      await _client.from(AppConstants.tableEvents).insert({
+        'title': title,
+        'description': description,
+        'event_date': eventDate.toIso8601String(),
+        'location': location,
+        'branch_id': branchId,
+        'is_global': isGlobal,
+      });
+    } catch (e) {
+      throw EventServiceException('Unable to create event: $e');
     }
   }
 }

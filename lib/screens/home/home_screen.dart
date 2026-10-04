@@ -3,11 +3,14 @@ import 'package:provider/provider.dart';
 
 import '../../providers/announcement_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/branch_provider.dart';
 import '../../providers/event_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../providers/poll_provider.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../announcements/announcement_feed_screen.dart';
 import '../events/event_list_screen.dart';
+import '../notifications/notification_screen.dart';
 import '../polls/poll_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,53 +23,38 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  static const _titles = ['Announcements', 'Polls', 'Events', 'Admin'];
+  static const _titles = [
+    'Announcements',
+    'Polls',
+    'Events',
+    'Notifications',
+    'Admin',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profile = context.read<AuthProvider>().profile;
+      if (profile != null) {
+        context.read<NotificationProvider>().startListening(profile.id);
+        context.read<BranchProvider>().loadBranches();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final isAdmin = authProvider.isAdmin;
+    final unreadCount =
+        context.watch<NotificationProvider>().unreadCount;
 
-    // Providers now live ABOVE the IndexedStack, so every tab
-    // (including Admin) can access AnnouncementProvider and PollProvider.
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
-        ChangeNotifierProvider(create: (_) => PollProvider()),
-        ChangeNotifierProvider(create: (_) => EventProvider()),
-      ],
-      child: _HomeScreenBody(
-        isAdmin: isAdmin,
-        currentIndex: _currentIndex,
-        titles: _titles,
-        onTabChanged: (index) => setState(() => _currentIndex = index),
-        onSignOut: () => authProvider.signOut(),
-      ),
-    );
-  }
-}
-
-class _HomeScreenBody extends StatelessWidget {
-  final bool isAdmin;
-  final int currentIndex;
-  final List<String> titles;
-  final ValueChanged<int> onTabChanged;
-  final VoidCallback onSignOut;
-
-  const _HomeScreenBody({
-    required this.isAdmin,
-    required this.currentIndex,
-    required this.titles,
-    required this.onTabChanged,
-    required this.onSignOut,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     final tabs = <Widget>[
       const AnnouncementFeedScreen(),
       const PollScreen(),
       const EventListScreen(),
+      const NotificationScreen(),
       if (isAdmin) const AdminDashboardScreen(),
     ];
 
@@ -86,6 +74,19 @@ class _HomeScreenBody extends StatelessWidget {
         activeIcon: Icon(Icons.event),
         label: 'Events',
       ),
+      BottomNavigationBarItem(
+        icon: Badge(
+          isLabelVisible: unreadCount > 0,
+          label: Text('$unreadCount'),
+          child: const Icon(Icons.notifications_outlined),
+        ),
+        activeIcon: Badge(
+          isLabelVisible: unreadCount > 0,
+          label: Text('$unreadCount'),
+          child: const Icon(Icons.notifications),
+        ),
+        label: 'Alerts',
+      ),
       if (isAdmin)
         const BottomNavigationBarItem(
           icon: Icon(Icons.admin_panel_settings_outlined),
@@ -94,25 +95,32 @@ class _HomeScreenBody extends StatelessWidget {
         ),
     ];
 
-    final safeIndex = currentIndex < tabs.length ? currentIndex : 0;
+    final safeIndex = _currentIndex < tabs.length ? _currentIndex : 0;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(titles[safeIndex]),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-            onPressed: onSignOut,
-          ),
-        ],
-      ),
-      body: IndexedStack(index: safeIndex, children: tabs),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: safeIndex,
-        onTap: onTabChanged,
-        type: BottomNavigationBarType.fixed,
-        items: navItems,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AnnouncementProvider()),
+        ChangeNotifierProvider(create: (_) => PollProvider()),
+        ChangeNotifierProvider(create: (_) => EventProvider()),
+      ],
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_titles[safeIndex]),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Sign out',
+              onPressed: () => authProvider.signOut(),
+            ),
+          ],
+        ),
+        body: IndexedStack(index: safeIndex, children: tabs),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: safeIndex,
+          onTap: (i) => setState(() => _currentIndex = i),
+          type: BottomNavigationBarType.fixed,
+          items: navItems,
+        ),
       ),
     );
   }

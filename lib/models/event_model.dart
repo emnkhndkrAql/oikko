@@ -1,13 +1,12 @@
-
 class EventModel {
   final String id;
   final String title;
   final String description;
   final DateTime eventDate;
   final String location;
-
+  final String? branchId;
+  final bool isGlobal;
   final String? userStatus;
-
   final int goingCount;
   final int notGoingCount;
   final int interestedCount;
@@ -18,6 +17,8 @@ class EventModel {
     required this.description,
     required this.eventDate,
     required this.location,
+    this.branchId,
+    this.isGlobal = false,
     this.userStatus,
     this.goingCount = 0,
     this.notGoingCount = 0,
@@ -39,6 +40,8 @@ class EventModel {
       description: json['description'] as String? ?? '',
       eventDate: DateTime.parse(json['event_date'] as String),
       location: json['location'] as String? ?? '',
+      branchId: json['branch_id'] as String?,
+      isGlobal: json['is_global'] as bool? ?? false,
       userStatus: userStatus,
       goingCount: goingCount,
       notGoingCount: notGoingCount,
@@ -53,6 +56,8 @@ class EventModel {
       'description': description,
       'event_date': eventDate.toIso8601String(),
       'location': location,
+      'branch_id': branchId,
+      'is_global': isGlobal,
     };
   }
 
@@ -68,6 +73,8 @@ class EventModel {
       description: description,
       eventDate: eventDate,
       location: location,
+      branchId: branchId,
+      isGlobal: isGlobal,
       userStatus: userStatus ?? this.userStatus,
       goingCount: goingCount ?? this.goingCount,
       notGoingCount: notGoingCount ?? this.notGoingCount,

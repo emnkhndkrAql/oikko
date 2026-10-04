@@ -1,4 +1,3 @@
-
 class AnnouncementModel {
   final String id;
   final String title;
@@ -6,6 +5,9 @@ class AnnouncementModel {
   final String? imageUrl;
   final DateTime createdAt;
   final String createdBy;
+  final String? branchId;
+  final bool isGlobal;
+  final String priority;
 
   const AnnouncementModel({
     required this.id,
@@ -14,7 +16,13 @@ class AnnouncementModel {
     this.imageUrl,
     required this.createdAt,
     required this.createdBy,
+    this.branchId,
+    this.isGlobal = false,
+    this.priority = 'normal',
   });
+
+  bool get isEmergency => priority == 'emergency';
+  bool get isHigh => priority == 'high';
 
   factory AnnouncementModel.fromJson(Map<String, dynamic> json) {
     return AnnouncementModel(
@@ -24,6 +32,9 @@ class AnnouncementModel {
       imageUrl: json['image_url'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       createdBy: json['created_by'] as String? ?? '',
+      branchId: json['branch_id'] as String?,
+      isGlobal: json['is_global'] as bool? ?? false,
+      priority: json['priority'] as String? ?? 'normal',
     );
   }
 
@@ -35,16 +46,9 @@ class AnnouncementModel {
       'image_url': imageUrl,
       'created_at': createdAt.toIso8601String(),
       'created_by': createdBy,
-    };
-  }
-
-
-  Map<String, dynamic> toInsertJson() {
-    return {
-      'title': title,
-      'content': content,
-      'image_url': imageUrl,
-      'created_by': createdBy,
+      'branch_id': branchId,
+      'is_global': isGlobal,
+      'priority': priority,
     };
   }
 }
