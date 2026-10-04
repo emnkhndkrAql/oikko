@@ -64,3 +64,17 @@ Lehman's Laws demonstrated:
 ---
 
 ## Git Workflow
+main (stable releases)
+└── develop (integration)
+├── feature/branch-support
+├── feature/role-enhancement
+├── feature/notification-center
+└── feature/ddbms-schema
+
+
+## Tech Stack
+
+- **Frontend**: Flutter (Dart)
+- **Backend**: Supabase (PostgreSQL)
+- **State Management**: Provider
+- **Version Control**: Git + GitHub
