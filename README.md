@@ -1,16 +1,66 @@
-# oikkko
+# Oikko 🤝
 
-A new Flutter project.
+> Club Governance and Management Mobile Application  
+> Built with Flutter + Supabase | Version: v1.1
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## Version History
 
-A few resources to get you started if this is your first Flutter project:
+| Version | Description |
+|---------|-------------|
+| v1.0 | Baseline: Auth, Announcements, Polls, Events, Admin Dashboard |
+| v1.1 | DDBMS upgrade: Branch support, Role hierarchy, Notification Center, Analytics |
+| v2.0 | (Planned) Full distributed architecture, Multi-org, Advanced features |
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Features (v1.1)
+
+- 🔐 Authentication with role-based access (Super Admin / Admin / Moderator / Member)
+- 📢 Announcement feed with branch filtering + emergency replication
+- 🗳️ Live polling with real-time vote results
+- 📅 Event management with RSVP tracking
+- 🏢 Branch/Multi-org support (DDBMS horizontal fragmentation)
+- 🔔 Notification center (read/unread)
+- 📊 Basic analytics dashboard (admin only)
+- 🗄️ DDBMS: Horizontal + Vertical + Hybrid fragmentation via Supabase
+
+---
+
+## DDBMS Design (SE 208)
+
+| Concept | Implementation |
+|---------|---------------|
+| Horizontal Fragmentation | Events, Polls, Announcements split by `branch_id` |
+| Vertical Fragmentation | `profiles` → `profiles` (basic) + `profile_private` (sensitive) |
+| Partial Replication | `is_global=true` + `priority=emergency` announcements replicated to all nodes |
+| Reconstruction | Views: `events_reconstructed`, `member_full` |
+| Data Locality | Each member assigned to a branch (logical site) |
+
+---
+
+## Software Evolution (SE 216)
+
+This project follows the **Software Evolution Life Cycle**:
+- Requirements analysis → Impact analysis → Implementation → Testing → Release
+
+Lehman's Laws demonstrated:
+- **Continuing Change**: v1.0 → v1.1 → v2.0
+- **Increasing Complexity**: DDBMS, roles, notifications added
+- **Continuing Growth**: Feature set expands each version
+
+---
+
+## Setup
+
+1. Clone the repo
+2. Copy `lib/core/constants.example.dart` → `lib/core/constants.dart`
+3. Fill in your Supabase URL and anon key
+4. Run SQL schema: `supabase/v1.1_schema.sql`
+5. `flutter pub get`
+6. `flutter run`
+
+---
+
+## Git Workflow
