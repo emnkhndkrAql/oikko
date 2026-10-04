@@ -63,14 +63,6 @@ Lehman's Laws demonstrated:
 
 ---
 
-## Git Workflow
-main (stable releases)
-└── develop (integration)
-├── feature/branch-support
-├── feature/role-enhancement
-├── feature/notification-center
-└── feature/ddbms-schema
-
 
 ## Tech Stack
 
