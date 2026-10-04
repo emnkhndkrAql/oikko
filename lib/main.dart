@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'core/app_theme.dart';
 import 'core/supabase_client.dart';
 import 'providers/auth_provider.dart';
 import 'providers/branch_provider.dart';
@@ -29,21 +30,7 @@ class OikkoApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Oikko',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorSchemeSeed: const Color(0xFF2F6FED),
-          scaffoldBackgroundColor: const Color(0xFFF7F8FA),
-          appBarTheme: const AppBarTheme(
-            centerTitle: false,
-            elevation: 0,
-            backgroundColor: Color(0xFFF7F8FA),
-            foregroundColor: Colors.black87,
-          ),
-          inputDecorationTheme: const InputDecorationTheme(
-            filled: true,
-            fillColor: Colors.white,
-          ),
-        ),
+        theme: AppTheme.lightTheme,
         home: const AuthGate(),
       ),
     );
